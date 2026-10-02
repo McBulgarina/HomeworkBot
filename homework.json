@@ -1,0 +1,18 @@
+[
+    {
+        "id": 2,
+        "subject": "Bulgarian",
+        "description": "Da napravim tupoto sravnenie na Mankova",
+        "due_date": "2026-10-06T10:00:00+03:00",
+        "reminded_24h": false,
+        "reminded_12h": false
+    },
+    {
+        "id": 2,
+        "subject": "OOP",
+        "description": "5 zadachi ot  faila",
+        "due_date": "2026-10-05T08:00:00+03:00",
+        "reminded_24h": false,
+        "reminded_12h": false
+    }
+]
