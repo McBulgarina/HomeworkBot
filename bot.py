@@ -147,26 +147,24 @@ intents.guilds = True
 # BOT CLASS
 # =========================
 
+
 class HomeworkBot(commands.Bot):
     async def setup_hook(self):
-        self.tree.clear_commands(guild=GUILD)
         self.tree.copy_global_to(guild=GUILD)
 
         try:
-            synced = await self.tree.sync()
-            print(f"Synced {len(synced)} slash command(s)")
+            synced = await self.tree.sync(guild=GUILD)
+            print(f"Synced {len(synced)} slash command(s) to the server")
         except Exception as e:
             print(f"Error syncing commands: {e}")
 
         if not reminder_checker.is_running():
             reminder_checker.start()
 
-
 bot = HomeworkBot(
     command_prefix="!",
     intents=intents
 )
-
 
 # =========================
 # HOMEWORK STORAGE
@@ -284,6 +282,88 @@ async def list_users(interaction: discord.Interaction):
 async def on_ready():
     print(f"Logged in as {bot.user}")
 
+#=========================
+# ADD TEST
+#==========================
+
+@bot.tree.command(
+    name="add_test",
+    description="Add a test"
+)
+@app_commands.describe(
+    classname="The class of the students",
+    subject="The subject",
+    description="What test needs to be done",
+    due_date="Due date: DD-MM-YYYY HH:MM"
+)
+async def add_test(
+    interaction: discord.Interaction,
+    classname: str,
+    subject: str,
+    description: str,
+    due_date: str
+):
+    if not await check_authorization(
+        interaction,
+        "add_test",
+        f"{classname}: {subject} — {description}"
+    ):
+        return
+
+    try:
+        due_datetime = datetime.strptime(
+            due_date,
+            "%d-%m-%Y %H:%M"
+        ).replace(
+            tzinfo=TIMEZONE
+        )
+    except ValueError:
+        await interaction.response.send_message(
+            "❌ Invalid date format.\n\n"
+            "Use:\n"
+            "`DD-MM-YYYY HH:MM`\n\n"
+            "Example:\n"
+            "`01-02-2026 18:00`",
+            ephemeral=True
+        )
+        return
+
+    now = datetime.now(TIMEZONE)
+
+    if due_datetime <= now:
+        await interaction.response.send_message(
+            "❌ The due date must be in the future.",
+            ephemeral=True
+        )
+        return
+
+    existing_ids = {hw["id"] for hw in homework_list}
+
+    while True:
+        random_id = random.randint(1000000, 10000000)
+        if random_id not in existing_ids:
+            break
+
+    homework = {
+        "id": random_id,
+        "class": classname,
+        "subject": subject,
+        "description": description,
+        "due_date": due_datetime.isoformat(),
+        "reminded_24h": False,
+        "reminded_12h": False
+    }
+
+    homework_list.append(homework)
+    save_homework()
+
+    await interaction.response.send_message(
+        f"📚 **Test added!**\n\n"
+        f"**Class:** {classname}\n"
+        f"**Subject:** {subject}\n"
+        f"**Description:** {description}\n"
+        f"**Due:** {due_datetime.strftime('%d/%m/%Y %H:%M')}"
+    )
 
 # =========================
 # ADD HOMEWORK
